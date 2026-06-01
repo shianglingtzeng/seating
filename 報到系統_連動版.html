@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>2026 COMPUTEX 報到系統</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --bg:#0B0F1A;--surface:#131826;--surface2:#1C2235;
+  --border:#2A3352;--accent:#4A8CFF;--green:#00D4A4;--gold:#FFB547;
+  --red:#FF5C7A;--text:#E8EDF8;--muted:#6B7A9F;
+  --a:#4A8CFF;--b:#00D4A4;--c:#FFB547;
+}
+body{font-family:"Noto Serif TC",serif;background:var(--bg);color:var(--text);min-height:100vh;}
+.header{background:linear-gradient(135deg,#0D1422,#131E35,#0D1422);
+  border-bottom:1px solid var(--border);padding:18px 16px 14px;text-align:center;position:relative;overflow:hidden;}
+.header::before{content:"";position:absolute;inset:0;
+  background:radial-gradient(ellipse 70% 100% at 50% -10%,rgba(74,140,255,0.1),transparent);pointer-events:none;}
+.header-tag{font-family:"DM Mono",monospace;font-size:9px;letter-spacing:3px;color:var(--accent);text-transform:uppercase;margin-bottom:6px;}
+.header h1{font-size:clamp(16px,3.5vw,22px);font-weight:700;color:#fff;letter-spacing:1px;}
+.stats-row{display:flex;justify-content:center;gap:12px;margin-top:12px;flex-wrap:wrap;}
+.stat-box{background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:8px;padding:8px 14px;text-align:center;min-width:72px;}
+.stat-num{font-family:"DM Mono",monospace;font-size:20px;font-weight:700;}
+.stat-num.green{color:var(--green);}.stat-num.blue{color:var(--accent);}
+.stat-label{font-size:10px;color:var(--muted);margin-top:2px;}
+.prog-bar{height:3px;background:var(--border);border-radius:99px;margin:10px 16px 0;overflow:hidden;}
+.prog-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--green));border-radius:99px;transition:width .5s ease;width:0%;}
+
+.staff-banner{display:none;background:linear-gradient(90deg,rgba(0,212,164,0.12),rgba(0,212,164,0.06));
+  border-bottom:1px solid rgba(0,212,164,0.3);padding:8px 16px;text-align:center;
+  font-size:12px;color:var(--green);font-family:"DM Mono",monospace;letter-spacing:.5px;}
+.staff-banner.show{display:block;}
+
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:200;
+  display:none;align-items:center;justify-content:center;padding:20px;}
+.modal-bg.show{display:flex;}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:16px;
+  padding:28px 24px;width:100%;max-width:340px;text-align:center;}
+.modal h2{font-size:16px;margin-bottom:6px;}.modal p{font-size:12px;color:var(--muted);margin-bottom:20px;}
+.modal input{width:100%;padding:12px;border-radius:8px;background:var(--surface2);
+  border:1px solid var(--border);color:var(--text);font-size:16px;text-align:center;
+  letter-spacing:4px;outline:none;margin-bottom:12px;}
+.modal input:focus{border-color:var(--accent);}
+.modal-btns{display:flex;gap:8px;}
+.btn{flex:1;padding:12px;border-radius:8px;border:none;font-size:14px;cursor:pointer;
+  font-family:"Noto Serif TC",serif;font-weight:700;}
+.btn-primary{background:var(--accent);color:#fff;}.btn-primary:hover{background:#3a7ce0;}
+.btn-ghost{background:var(--surface2);color:var(--muted);border:1px solid var(--border);}
+.modal-err{font-size:12px;color:var(--red);margin-top:8px;display:none;}
+
+.search-wrap{padding:14px 16px 10px;background:var(--surface);
+  border-bottom:1px solid var(--border);position:sticky;top:0;z-index:10;}
+.search-inner{position:relative;}
+.search-icon{position:absolute;left:13px;top:50%;transform:translateY(-50%);font-size:15px;color:var(--muted);pointer-events:none;}
+#search{width:100%;padding:12px 13px 12px 40px;border-radius:10px;background:var(--surface2);
+  border:1px solid var(--border);color:var(--text);font-size:15px;
+  font-family:"Noto Serif TC",serif;outline:none;transition:border-color .2s;}
+#search:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(74,140,255,0.1);}
+#search::placeholder{color:var(--muted);}
+.toolbar{display:flex;justify-content:space-between;align-items:center;margin-top:8px;}
+.conn-dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--muted);margin-right:5px;vertical-align:middle;}
+.conn-dot.ok{background:var(--green);}.conn-dot.err{background:var(--red);}
+.search-hint{font-family:"DM Mono",monospace;font-size:10px;color:var(--muted);display:flex;align-items:center;gap:4px;}
+.staff-toggle{font-family:"DM Mono",monospace;font-size:10px;color:var(--muted);
+  background:none;border:1px solid var(--border);border-radius:6px;padding:4px 10px;cursor:pointer;}
+.staff-toggle.active{border-color:var(--green);color:var(--green);}
+
+.results-wrap{padding:12px 16px;}
+.result-count{font-family:"DM Mono",monospace;font-size:11px;color:var(--muted);margin-bottom:10px;}
+.empty-state{text-align:center;padding:40px 20px;color:var(--muted);font-size:13px;}
+.empty-icon{font-size:32px;margin-bottom:8px;}
+.loading-state{text-align:center;padding:40px 20px;color:var(--muted);font-size:13px;}
+
+.result-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;
+  padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:12px;
+  transition:transform .15s,box-shadow .15s;animation:fadeIn .2s ease;cursor:pointer;}
+.result-card:hover{transform:translateY(-1px);box-shadow:0 4px 16px rgba(0,0,0,0.3);}
+.result-card.zone-a{border-left:3px solid var(--a);}
+.result-card.zone-b{border-left:3px solid var(--b);}
+.result-card.zone-c{border-left:3px solid var(--c);}
+.result-card.checked-in{background:linear-gradient(135deg,rgba(0,212,164,0.06),var(--surface));}
+
+.seat-badge{flex-shrink:0;width:48px;height:48px;border-radius:9px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;font-family:"DM Mono",monospace;}
+.zone-a .seat-badge{background:rgba(74,140,255,0.12);border:1px solid rgba(74,140,255,0.25);}
+.zone-b .seat-badge{background:rgba(0,212,164,0.12);border:1px solid rgba(0,212,164,0.25);}
+.zone-c .seat-badge{background:rgba(255,181,71,0.12);border:1px solid rgba(255,181,71,0.25);}
+.seat-zone{font-size:15px;font-weight:700;}
+.zone-a .seat-zone{color:var(--a);}.zone-b .seat-zone{color:var(--b);}.zone-c .seat-zone{color:var(--c);}
+.seat-num{font-size:9px;color:var(--muted);}
+
+.result-info{flex:1;min-width:0;}
+.result-name{font-size:13px;font-weight:700;color:var(--text);line-height:1.4;word-break:break-all;}
+.result-name mark{background:rgba(74,140,255,0.2);color:#fff;border-radius:2px;padding:0 1px;}
+.result-seat-label{font-family:"DM Mono",monospace;font-size:10px;color:var(--muted);margin-top:2px;}
+.result-time{font-family:"DM Mono",monospace;font-size:9px;color:var(--green);margin-top:2px;}
+
+.checkin-btn{flex-shrink:0;width:44px;height:44px;border-radius:9px;border:none;cursor:pointer;
+  font-size:20px;display:flex;align-items:center;justify-content:center;transition:transform .15s,background .15s;}
+.checkin-btn.unchecked{background:var(--surface2);border:1px solid var(--border);}
+.checkin-btn.unchecked:hover{border-color:var(--green);background:rgba(0,212,164,0.1);}
+.checkin-btn.checked{background:rgba(0,212,164,0.15);border:1px solid var(--green);}
+.checkin-btn:active{transform:scale(0.9);}
+
+.section-title{font-family:"DM Mono",monospace;font-size:10px;letter-spacing:2px;
+  color:var(--muted);text-transform:uppercase;padding:14px 16px 8px;border-top:1px solid var(--border);}
+.venue-wrap{padding:0 16px 20px;overflow-x:auto;}
+.stage-bar{text-align:center;font-family:"DM Mono",monospace;font-size:10px;letter-spacing:3px;
+  color:var(--muted);border:1px solid var(--border);border-radius:6px;padding:5px;margin-bottom:8px;}
+.zone-headers{display:flex;gap:6px;margin-bottom:4px;padding-left:20px;}
+.zh{flex:1;text-align:center;font-family:"DM Mono",monospace;font-size:9px;font-weight:700;padding:2px 0;border-radius:3px;}
+.zh-a{color:var(--a);background:rgba(74,140,255,0.1);}
+.zh-b{color:var(--b);background:rgba(0,212,164,0.1);flex:1.5;}
+.zh-c{color:var(--c);background:rgba(255,181,71,0.1);}
+.vrow{display:flex;align-items:center;gap:2px;margin-bottom:2px;}
+.row-lbl{width:16px;flex-shrink:0;font-family:"DM Mono",monospace;font-size:8px;color:var(--muted);text-align:right;padding-right:2px;}
+.zone-seats{display:flex;gap:2px;}
+.zone-gap{width:6px;flex-shrink:0;}
+.seat{width:24px;height:20px;border-radius:3px;font-size:7px;
+  display:flex;align-items:center;justify-content:center;cursor:pointer;border:1px solid transparent;transition:transform .1s;}
+.seat:hover{transform:scale(1.12);z-index:2;position:relative;}
+.sa-e{background:rgba(74,140,255,0.06);border-color:rgba(74,140,255,0.12);color:rgba(74,140,255,0.2);}
+.sb-e{background:rgba(0,212,164,0.06);border-color:rgba(0,212,164,0.12);color:rgba(0,212,164,0.2);}
+.sc-e{background:rgba(255,181,71,0.06);border-color:rgba(255,181,71,0.12);color:rgba(255,181,71,0.2);}
+.sa-f{background:rgba(74,140,255,0.18);border-color:rgba(74,140,255,0.4);color:var(--a);}
+.sb-f{background:rgba(0,212,164,0.18);border-color:rgba(0,212,164,0.4);color:var(--b);}
+.sc-f{background:rgba(255,181,71,0.18);border-color:rgba(255,181,71,0.4);color:var(--c);}
+.seat.seat-done{background:rgba(0,212,164,0.25)!important;border-color:var(--green)!important;color:var(--green)!important;}
+.seat.highlight{box-shadow:0 0 0 2px var(--accent);transform:scale(1.15);z-index:3;}
+
+#tt{position:fixed;pointer-events:none;z-index:999;background:var(--surface2);
+  border:1px solid var(--border);color:var(--text);font-size:11px;padding:6px 10px;
+  border-radius:7px;max-width:220px;display:none;box-shadow:0 6px 20px rgba(0,0,0,0.5);line-height:1.5;}
+#tt-seat{font-family:"DM Mono",monospace;font-size:9px;color:var(--muted);margin-bottom:2px;}
+
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);
+  background:var(--surface2);border:1px solid var(--border);color:var(--text);
+  font-size:13px;padding:10px 20px;border-radius:10px;display:none;
+  z-index:300;white-space:nowrap;box-shadow:0 8px 24px rgba(0,0,0,0.4);}
+.toast.ok{border-color:var(--green);color:var(--green);}
+.toast.err{border-color:var(--red);color:var(--red);}
+.footer{text-align:center;padding:14px;font-family:"DM Mono",monospace;font-size:10px;
+  color:var(--muted);border-top:1px solid var(--border);letter-spacing:.5px;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(3px);}to{opacity:1;transform:none;}}
+</style>
+</head>
+<body>
+
+<div id="tt"><div id="tt-seat"></div><div id="tt-name"></div></div>
+
+<div class="modal-bg" id="pw-modal">
+  <div class="modal">
+    <h2>🔐 工作人員登入</h2>
+    <p>請輸入報到密碼以開啟報到功能</p>
+    <input type="password" id="pw-input" placeholder="••••••••" onkeydown="if(event.key==='Enter')checkPw()" />
+    <div class="modal-err" id="pw-err">密碼錯誤，請再試一次</div>
+    <div class="modal-btns">
+      <button class="btn btn-ghost" onclick="closePwModal()">取消</button>
+      <button class="btn btn-primary" onclick="checkPw()">確認</button>
+    </div>
+  </div>
+</div>
+
+<div class="header">
+  <div class="header-tag">2026 COMPUTEX · Opening Ceremony</div>
+  <h1>報到系統</h1>
+  <div class="stats-row">
+    <div class="stat-box"><div class="stat-num green" id="st-checked">0</div><div class="stat-label">已報到</div></div>
+    <div class="stat-box"><div class="stat-num blue" id="st-total">—</div><div class="stat-label">已分配</div></div>
+    <div class="stat-box"><div class="stat-num" id="st-remain" style="color:var(--muted)">—</div><div class="stat-label">未報到</div></div>
+  </div>
+  <div class="prog-bar"><div class="prog-fill" id="prog"></div></div>
+</div>
+
+<div class="staff-banner" id="staff-banner">✅ 工作人員模式已開啟 · 可進行報到操作</div>
+
+<div class="search-wrap">
+  <div class="search-inner">
+    <span class="search-icon">🔍</span>
+    <input type="text" id="search" placeholder="搜尋賓客姓名、公司或機構…" oninput="doSearch()" autocomplete="off" />
+  </div>
+  <div class="toolbar">
+    <div class="search-hint">
+      <span class="conn-dot" id="conn-dot"></span>
+      <span id="conn-status">連線中…</span>
+    </div>
+    <button class="staff-toggle" id="staff-btn" onclick="toggleStaffMode()">🔐 工作人員</button>
+  </div>
+</div>
+
+<div class="results-wrap" id="results-wrap">
+  <div class="loading-state"><div class="empty-icon">⏳</div><div>資料載入中…</div></div>
+</div>
+
+<div class="section-title">視覺席次圖 · Seating Map</div>
+<div class="venue-wrap">
+  <div class="stage-bar">▲ &nbsp; S T A G E &nbsp; / &nbsp; 舞　台 &nbsp; ▲</div>
+  <div class="zone-headers">
+    <div class="zh zh-a">A 區（左）</div>
+    <div class="zone-gap"></div>
+    <div class="zh zh-b">B 區（中）</div>
+    <div class="zone-gap"></div>
+    <div class="zh zh-c">C 區（右）</div>
+  </div>
+  <div id="vmap"></div>
+</div>
+
+<div class="footer" id="footer-ts">2026 COMPUTEX · 資料即時同步自 Firebase · 報到狀態多設備共享</div>
+<div class="toast" id="toast"></div>
+
+<script type="module">
+import{initializeApp}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import{getDatabase,ref,onValue,update}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+const fb=initializeApp({
+  apiKey:"AIzaSyB9H0Pc0_ecOmbF0zvwBW2S0JNQnn4lefg",
+  authDomain:"computex20260602.firebaseapp.com",
+  databaseURL:"https://computex20260602-default-rtdb.firebaseio.com",
+  projectId:"computex20260602",
+  storageBucket:"computex20260602.firebasestorage.app",
+  messagingSenderId:"111696785290",
+  appId:"1:111696785290:web:41a67c52f1a3363ab7e273"
+});
+const db=getDatabase(fb);
+const assignRef=ref(db,"assignments2026");
+const checkinsRef=ref(db,"checkins2026");
+
+const ZS=[6,9,6],ZK=["A","B","C"];
+const STAFF_PASSWORD="CPX2026";
+
+// ── State ──────────────────────────────────────────
+let DATA={};         // 從 Firebase assignments2026 即時載入
+let checkins={};     // 從 Firebase checkins2026 即時載入
+let staffMode=false;
+let assignLoaded=false, checkinsLoaded=false;
+
+// ── Conn status ────────────────────────────────────
+function setConn(s){
+  const dot=document.getElementById("conn-dot");
+  const lbl=document.getElementById("conn-status");
+  if(s==="ok"){dot.className="conn-dot ok";lbl.textContent="已連線 · 即時同步";}
+  else if(s==="loading"){dot.className="conn-dot";lbl.textContent="連線中…";}
+  else{dot.className="conn-dot err";lbl.textContent="連線失敗";}
+}
+
+// ── Listen: assignments2026（座位資料，從 cpxopen 連動）──
+onValue(assignRef, snap=>{
+  DATA={};
+  const d=snap.val()||{};
+  // assignments2026 的格式是 { "A1-1": "姓名", ... }
+  Object.entries(d).forEach(([code,name])=>{ DATA[code]=name; });
+  assignLoaded=true;
+  setConn("ok");
+  checkBothLoaded();
+}, ()=>{
+  setConn("err");
+  document.getElementById("results-wrap").innerHTML=
+    "<div class="empty-state"><div class="empty-icon">⚠️</div><div>無法連線至 Firebase<br>請確認網路連線</div></div>";
+});
+
+// ── Listen: checkins2026（報到狀態）─────────────────
+onValue(checkinsRef, snap=>{
+  checkins=snap.val()||{};
+  checkinsLoaded=true;
+  checkBothLoaded();
+});
+
+function checkBothLoaded(){
+  if(!assignLoaded||!checkinsLoaded) return;
+  updateStats();
+  buildMap();
+  doSearch();
+  // Update footer timestamp
+  const now=new Date();
+  document.getElementById("footer-ts").textContent=
+    "2026 COMPUTEX · 座位資料即時同步自 cpxopen · 最後更新 "+
+    now.getHours().toString().padStart(2,"0")+":"+now.getMinutes().toString().padStart(2,"0");
+}
+
+// ── Stats ──────────────────────────────────────────
+function updateStats(){
+  const total=Object.keys(DATA).length;
+  const done=Object.keys(checkins).length;
+  document.getElementById("st-checked").textContent=done;
+  document.getElementById("st-total").textContent=total;
+  document.getElementById("st-remain").textContent=total-done;
+  document.getElementById("prog").style.width=total?(done/total*100).toFixed(1)+"%":"0%";
+}
+
+// ── Password ───────────────────────────────────────
+window.toggleStaffMode=function(){
+  if(staffMode){exitStaff();return;}
+  document.getElementById("pw-modal").classList.add("show");
+  setTimeout(()=>document.getElementById("pw-input").focus(),100);
+};
+window.checkPw=function(){
+  const v=document.getElementById("pw-input").value;
+  if(v===STAFF_PASSWORD){
+    staffMode=true;
+    document.getElementById("pw-modal").classList.remove("show");
+    document.getElementById("pw-input").value="";
+    document.getElementById("pw-err").style.display="none";
+    document.getElementById("staff-banner").classList.add("show");
+    document.getElementById("staff-btn").classList.add("active");
+    document.getElementById("staff-btn").textContent="✅ 工作人員";
+    doSearch();toast("工作人員模式已開啟","ok");
+  }else{
+    document.getElementById("pw-err").style.display="block";
+    document.getElementById("pw-input").value="";
+    document.getElementById("pw-input").focus();
+  }
+};
+window.closePwModal=function(){
+  document.getElementById("pw-modal").classList.remove("show");
+  document.getElementById("pw-input").value="";
+  document.getElementById("pw-err").style.display="none";
+};
+function exitStaff(){
+  staffMode=false;
+  document.getElementById("staff-banner").classList.remove("show");
+  document.getElementById("staff-btn").classList.remove("active");
+  document.getElementById("staff-btn").textContent="🔐 工作人員";
+  doSearch();
+}
+
+// ── Check-in ───────────────────────────────────────
+async function toggleCheckin(code){
+  if(!staffMode){toast("請先登入工作人員模式","err");return;}
+  const updates={};
+  if(checkins[code]){
+    updates["checkins2026/"+code]=null;
+    await update(ref(db),updates);
+    toast("✕ 取消報到："+( DATA[code]||code).substring(0,15),"err");
+  }else{
+    const now=new Date();
+    const t=now.getHours().toString().padStart(2,"0")+":"+now.getMinutes().toString().padStart(2,"0");
+    updates["checkins2026/"+code]={time:t};
+    await update(ref(db),updates);
+    toast("✅ 報到完成："+(DATA[code]||code).substring(0,15),"ok");
+  }
+}
+
+// ── Search ─────────────────────────────────────────
+window.doSearch=function(){
+  if(!assignLoaded) return;
+  const kw=(document.getElementById("search").value||"").trim().toLowerCase();
+  const wrap=document.getElementById("results-wrap");
+  document.querySelectorAll(".seat.highlight").forEach(el=>el.classList.remove("highlight"));
+
+  if(!kw){
+    wrap.innerHTML="<div class="empty-state"><div class="empty-icon">🎟</div><div>輸入姓名或單位關鍵字<br>即可查詢座位</div></div>";
+    return;
+  }
+
+  const results=Object.entries(DATA).filter(([c,n])=>n&&n.toLowerCase().includes(kw));
+  if(!results.length){
+    wrap.innerHTML="<div class="empty-state"><div class="empty-icon">🔍</div><div>找不到「"+kw+"」相關座位</div></div>";
+    return;
+  }
+
+  wrap.innerHTML="";
+  const cnt=document.createElement("div");
+  cnt.className="result-count";
+  cnt.textContent="找到 "+results.length+" 筆結果";
+  wrap.appendChild(cnt);
+
+  results.forEach(([code,name])=>{
+    const zone=code[0].toLowerCase();
+    const checked=!!checkins[code];
+    const card=document.createElement("div");
+    card.className="result-card zone-"+zone+(checked?" checked-in":"");
+
+    const badge=document.createElement("div");badge.className="seat-badge";
+    badge.innerHTML="<span class="seat-zone">"+code[0]+"</span><span class="seat-num">"+code.slice(1)+"</span>";
+
+    const info=document.createElement("div");info.className="result-info";
+    const re=new RegExp("("+kw.replace(/[.*+?^${}()|[\]\]/g,"\$&")+")","gi");
+    const nameEl=document.createElement("div");nameEl.className="result-name";
+    nameEl.innerHTML=name.replace(re,"<mark>$1</mark>");
+    const seatLbl=document.createElement("div");seatLbl.className="result-seat-label";
+    seatLbl.textContent="座位 "+code;
+    info.appendChild(nameEl);info.appendChild(seatLbl);
+    if(checked&&checkins[code]&&checkins[code].time){
+      const tl=document.createElement("div");tl.className="result-time";
+      tl.textContent="✅ 已報到 "+checkins[code].time;
+      info.appendChild(tl);
+    }
+
+    const btn=document.createElement("button");
+    btn.className="checkin-btn "+(checked?"checked":"unchecked");
+    btn.textContent=checked?"✅":"○";
+    btn.title=checked?"點擊取消報到":"點擊標記報到";
+    btn.onclick=e=>{e.stopPropagation();toggleCheckin(code);};
+
+    card.appendChild(badge);card.appendChild(info);card.appendChild(btn);
+    card.onclick=()=>{
+      document.querySelectorAll(".seat.highlight").forEach(el=>el.classList.remove("highlight"));
+      const s=document.getElementById("seat-"+code);
+      if(s){s.classList.add("highlight");s.scrollIntoView({behavior:"smooth",block:"center"});}
+    };
+    wrap.appendChild(card);
+    const sEl=document.getElementById("seat-"+code);
+    if(sEl)sEl.classList.add("highlight");
+  });
+};
+
+// ── Map ────────────────────────────────────────────
+function buildMap(){
+  const wrap=document.getElementById("vmap");
+  if(!wrap.querySelector(".vrow")){
+    wrap.innerHTML="";
+    for(let r=0;r<10;r++){
+      const row=document.createElement("div");row.className="vrow";
+      const lbl=document.createElement("div");lbl.className="row-lbl";lbl.textContent=r+1;row.appendChild(lbl);
+      for(let z=0;z<3;z++){
+        if(z>0){const g=document.createElement("div");g.className="zone-gap";row.appendChild(g);}
+        const zd=document.createElement("div");zd.className="zone-seats";
+        for(let s=1;s<=ZS[z];s++){
+          const code=ZK[z]+(r+1)+"-"+s;
+          const el=document.createElement("div");
+          el.id="seat-"+code;el.className="seat";
+          el.addEventListener("mouseenter",e=>showTip(e,code));
+          el.addEventListener("mouseleave",()=>{document.getElementById("tt").style.display="none";});
+          el.addEventListener("click",()=>{if(staffMode&&DATA[code])toggleCheckin(code);});
+          zd.appendChild(el);
+        }
+        row.appendChild(zd);
+      }
+      wrap.appendChild(row);
+    }
+  }
+  // Update classes + text
+  for(let r=0;r<10;r++) for(let z=0;z<3;z++) for(let s=1;s<=ZS[z];s++){
+    const code=ZK[z]+(r+1)+"-"+s;
+    const el=document.getElementById("seat-"+code);if(!el)continue;
+    const name=DATA[code]||"";
+    const zl=ZK[z].toLowerCase();
+    const done=!!checkins[code];
+    const hl=el.classList.contains("highlight");
+    el.className="seat"+(hl?" highlight":"");
+    if(done)el.classList.add("seat-done");
+    else if(name)el.classList.add("s"+zl+"-f");
+    else el.classList.add("s"+zl+"-e");
+    el.textContent=done?"✓":(name?(name.trim()[0]||"?"):"");
+  }
+}
+
+// ── Tooltip ────────────────────────────────────────
+function showTip(e,code){
+  const name=DATA[code]||"";if(!name)return;
+  const tt=document.getElementById("tt");
+  document.getElementById("tt-seat").textContent=code+(checkins[code]?" · ✅ 已報到":"");
+  document.getElementById("tt-name").textContent=name;
+  tt.style.display="block";
+  tt.style.left=(e.clientX+12)+"px";tt.style.top=(e.clientY-40)+"px";
+}
+document.addEventListener("mousemove",e=>{
+  const tt=document.getElementById("tt");
+  if(tt.style.display!=="none"){tt.style.left=(e.clientX+12)+"px";tt.style.top=(e.clientY-40)+"px";}
+});
+
+// ── Toast ──────────────────────────────────────────
+function toast(msg,type){
+  const t=document.getElementById("toast");
+  t.textContent=msg;t.className="toast "+(type||"ok");t.style.display="block";
+  clearTimeout(t._t);t._t=setTimeout(()=>t.style.display="none",2800);
+}
+</script>
+</body>
+</html>
