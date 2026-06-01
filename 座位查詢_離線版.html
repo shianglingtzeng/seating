@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>2026 COMPUTEX 座位查詢</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+
+:root{
+  --bg:#0B0F1A;
+  --surface:#131826;
+  --surface2:#1C2235;
+  --border:#2A3352;
+  --accent:#4A8CFF;
+  --accent2:#00D4A4;
+  --gold:#FFB547;
+  --text:#E8EDF8;
+  --muted:#6B7A9F;
+  --a-color:#4A8CFF;
+  --b-color:#00D4A4;
+  --c-color:#FFB547;
+  --a-bg:rgba(74,140,255,0.08);
+  --b-bg:rgba(0,212,164,0.08);
+  --c-bg:rgba(255,181,71,0.08);
+  --a-border:rgba(74,140,255,0.25);
+  --b-border:rgba(0,212,164,0.25);
+  --c-border:rgba(255,181,71,0.25);
+}
+
+body{
+  font-family:'Noto Serif TC',serif;
+  background:var(--bg);
+  color:var(--text);
+  min-height:100vh;
+  padding:0;
+}
+
+/* ── Header ── */
+.header{
+  background:linear-gradient(135deg,#0D1422 0%,#131E35 50%,#0D1422 100%);
+  border-bottom:1px solid var(--border);
+  padding:24px 20px 20px;
+  text-align:center;
+  position:relative;
+  overflow:hidden;
+}
+.header::before{
+  content:'';position:absolute;inset:0;
+  background:radial-gradient(ellipse 60% 80% at 50% -20%,rgba(74,140,255,0.12),transparent);
+  pointer-events:none;
+}
+.header-tag{
+  font-family:'DM Mono',monospace;font-size:10px;letter-spacing:3px;
+  color:var(--accent);text-transform:uppercase;margin-bottom:8px;
+}
+.header h1{
+  font-size:clamp(18px,4vw,26px);font-weight:700;color:#fff;
+  letter-spacing:1px;margin-bottom:4px;
+}
+.header-sub{font-size:12px;color:var(--muted);letter-spacing:1px;}
+.total-badge{
+  display:inline-block;margin-top:12px;
+  font-family:'DM Mono',monospace;font-size:11px;
+  background:rgba(74,140,255,0.12);border:1px solid rgba(74,140,255,0.3);
+  color:var(--accent);padding:4px 14px;border-radius:99px;
+}
+
+/* ── Search ── */
+.search-wrap{
+  padding:20px 16px 12px;
+  background:var(--surface);
+  border-bottom:1px solid var(--border);
+  position:sticky;top:0;z-index:10;
+}
+.search-box{
+  position:relative;display:flex;align-items:center;gap:10px;
+}
+.search-icon{
+  position:absolute;left:14px;font-size:16px;color:var(--muted);pointer-events:none;
+}
+#search{
+  width:100%;padding:12px 14px 12px 42px;
+  border-radius:10px;
+  background:var(--surface2);
+  border:1px solid var(--border);
+  color:var(--text);font-size:15px;
+  font-family:'Noto Serif TC',serif;
+  outline:none;
+  transition:border-color .2s,box-shadow .2s;
+}
+#search:focus{
+  border-color:var(--accent);
+  box-shadow:0 0 0 3px rgba(74,140,255,0.12);
+}
+#search::placeholder{color:var(--muted);}
+.search-hint{
+  font-family:'DM Mono',monospace;font-size:11px;
+  color:var(--muted);margin-top:8px;text-align:center;
+}
+
+/* ── Results ── */
+.results-wrap{padding:12px 16px;}
+.result-count{
+  font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);
+  margin-bottom:12px;letter-spacing:.5px;
+}
+
+.result-card{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:12px;padding:14px 16px;margin-bottom:10px;
+  display:flex;align-items:center;gap:14px;
+  transition:transform .15s,border-color .15s,box-shadow .15s;
+  animation:fadeIn .2s ease;
+}
+.result-card:hover{
+  transform:translateY(-1px);
+  box-shadow:0 4px 20px rgba(0,0,0,0.3);
+}
+.result-card.zone-a{border-left:3px solid var(--a-color);background:linear-gradient(135deg,var(--a-bg),var(--surface));}
+.result-card.zone-b{border-left:3px solid var(--b-color);background:linear-gradient(135deg,var(--b-bg),var(--surface));}
+.result-card.zone-c{border-left:3px solid var(--c-color);background:linear-gradient(135deg,var(--c-bg),var(--surface));}
+.result-card:hover.zone-a{border-color:var(--a-border);box-shadow:0 4px 20px rgba(74,140,255,0.1);}
+.result-card:hover.zone-b{border-color:var(--b-border);box-shadow:0 4px 20px rgba(0,212,164,0.1);}
+.result-card:hover.zone-c{border-color:var(--c-border);box-shadow:0 4px 20px rgba(255,181,71,0.1);}
+
+.seat-badge{
+  flex-shrink:0;width:52px;height:52px;border-radius:10px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;
+  font-family:'DM Mono',monospace;
+}
+.zone-a .seat-badge{background:rgba(74,140,255,0.15);border:1px solid rgba(74,140,255,0.3);}
+.zone-b .seat-badge{background:rgba(0,212,164,0.15);border:1px solid rgba(0,212,164,0.3);}
+.zone-c .seat-badge{background:rgba(255,181,71,0.15);border:1px solid rgba(255,181,71,0.3);}
+.seat-zone{font-size:16px;font-weight:700;line-height:1;}
+.zone-a .seat-zone{color:var(--a-color);}
+.zone-b .seat-zone{color:var(--b-color);}
+.zone-c .seat-zone{color:var(--c-color);}
+.seat-num{font-size:10px;color:var(--muted);}
+
+.result-info{flex:1;min-width:0;}
+.result-name{
+  font-size:14px;font-weight:700;color:var(--text);
+  line-height:1.4;word-break:break-all;
+}
+.result-name mark{
+  background:rgba(74,140,255,0.25);color:#fff;
+  border-radius:2px;padding:0 1px;
+}
+.result-seat-label{
+  font-family:'DM Mono',monospace;font-size:11px;
+  color:var(--muted);margin-top:3px;
+}
+
+/* ── Venue map ── */
+.section-title{
+  font-family:'DM Mono',monospace;font-size:10px;letter-spacing:2px;
+  color:var(--muted);text-transform:uppercase;
+  padding:16px 16px 8px;
+  border-top:1px solid var(--border);margin-top:4px;
+}
+.venue-wrap{
+  padding:0 16px 16px;overflow-x:auto;
+}
+.stage-bar{
+  text-align:center;font-family:'DM Mono',monospace;font-size:10px;
+  letter-spacing:3px;color:var(--muted);
+  border:1px solid var(--border);border-radius:6px;
+  padding:6px;margin-bottom:10px;
+  background:linear-gradient(135deg,rgba(74,140,255,0.05),rgba(0,212,164,0.05));
+}
+.zone-headers{display:flex;gap:8px;margin-bottom:4px;padding-left:22px;}
+.zh{flex:1;text-align:center;font-family:'DM Mono',monospace;font-size:10px;font-weight:700;padding:3px 0;border-radius:4px;letter-spacing:.5px;}
+.zh-a{color:var(--a-color);background:rgba(74,140,255,0.1);}
+.zh-b{color:var(--b-color);background:rgba(0,212,164,0.1);flex:1.5;}
+.zh-c{color:var(--c-color);background:rgba(255,181,71,0.1);}
+
+.vrow{display:flex;align-items:center;gap:2px;margin-bottom:2px;}
+.row-label{
+  width:18px;flex-shrink:0;font-family:'DM Mono',monospace;
+  font-size:9px;color:var(--muted);text-align:right;padding-right:3px;
+}
+.zone-seats{display:flex;gap:2px;}
+.zone-gap{width:8px;flex-shrink:0;}
+
+.seat{
+  width:26px;height:22px;border-radius:3px;
+  font-size:7px;display:flex;align-items:center;justify-content:center;
+  cursor:pointer;transition:transform .1s,box-shadow .1s;
+  overflow:hidden;position:relative;
+  border:1px solid transparent;
+}
+.seat:hover{transform:scale(1.1);z-index:2;}
+.seat-empty-a{background:rgba(74,140,255,0.06);border-color:rgba(74,140,255,0.15);color:rgba(74,140,255,0.3);}
+.seat-empty-b{background:rgba(0,212,164,0.06);border-color:rgba(0,212,164,0.15);color:rgba(0,212,164,0.3);}
+.seat-empty-c{background:rgba(255,181,71,0.06);border-color:rgba(255,181,71,0.15);color:rgba(255,181,71,0.3);}
+.seat-filled-a{background:rgba(74,140,255,0.2);border-color:rgba(74,140,255,0.5);color:var(--a-color);}
+.seat-filled-b{background:rgba(0,212,164,0.2);border-color:rgba(0,212,164,0.5);color:var(--b-color);}
+.seat-filled-c{background:rgba(255,181,71,0.2);border-color:rgba(255,181,71,0.5);color:var(--c-color);}
+.seat.highlight{
+  background:#4A8CFF!important;border-color:#4A8CFF!important;
+  color:#fff!important;transform:scale(1.15);z-index:3;
+  box-shadow:0 0 0 3px rgba(74,140,255,0.4);
+  animation:seatPulse .6s ease 2;
+}
+@keyframes seatPulse{0%,100%{box-shadow:0 0 0 3px rgba(74,140,255,0.4);}50%{box-shadow:0 0 0 6px rgba(74,140,255,0.15);}}
+
+/* ── Tooltip ── */
+#tooltip{
+  position:fixed;pointer-events:none;z-index:999;
+  background:#1C2235;border:1px solid var(--border);
+  color:var(--text);font-size:11px;padding:7px 12px;
+  border-radius:8px;max-width:220px;display:none;
+  box-shadow:0 8px 24px rgba(0,0,0,0.5);
+  font-family:'Noto Serif TC',serif;line-height:1.5;
+}
+#tooltip .tt-seat{font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);margin-bottom:2px;}
+
+/* ── Empty state ── */
+.empty-state{
+  text-align:center;padding:40px 20px;
+  color:var(--muted);font-size:13px;
+}
+.empty-icon{font-size:32px;margin-bottom:8px;}
+
+/* ── Footer ── */
+.footer{
+  text-align:center;padding:16px;
+  font-family:'DM Mono',monospace;font-size:10px;
+  color:var(--muted);border-top:1px solid var(--border);
+  letter-spacing:.5px;
+}
+
+@keyframes fadeIn{from{opacity:0;transform:translateY(4px);}to{opacity:1;transform:none;}}
+</style>
+</head>
+<body>
+
+<div id="tooltip"><div class="tt-seat" id="tt-seat"></div><div id="tt-name"></div></div>
+
+<div class="header">
+  <div class="header-tag">2026 COMPUTEX · Opening Ceremony</div>
+  <h1>座位查詢系統</h1>
+  <div class="header-sub">Seating Lookup · 離線版本</div>
+  <div class="total-badge">210 席 · 全數就位</div>
+</div>
+
+<div class="search-wrap">
+  <div class="search-box">
+    <span class="search-icon">🔍</span>
+    <input type="text" id="search" placeholder="輸入姓名、公司或機構搜尋座位…" oninput="doSearch()" autocomplete="off" />
+  </div>
+  <div class="search-hint">支援中英文搜尋 · 輸入關鍵字即時顯示</div>
+</div>
+
+<div class="results-wrap" id="results-wrap">
+  <div class="empty-state">
+    <div class="empty-icon">🎟</div>
+    <div>輸入姓名或單位關鍵字<br>即可查詢座位號碼</div>
+  </div>
+</div>
+
+<div class="section-title">視覺席次圖 · Seating Map</div>
+<div class="venue-wrap">
+  <div class="stage-bar">▲ &nbsp; S T A G E &nbsp; / &nbsp; 舞　台 &nbsp; ▲</div>
+  <div class="zone-headers">
+    <div class="zh zh-a">A 區（左）</div>
+    <div class="zone-gap"></div>
+    <div class="zh zh-b">B 區（中）</div>
+    <div class="zone-gap"></div>
+    <div class="zh zh-c">C 區（右）</div>
+  </div>
+  <div id="vmap"></div>
+</div>
+
+<div class="footer">離線版本 · 資料截至 2026.06.01 · 僅供查詢</div>
+
+<script>
+const DATA = {
+  "A1-1": "中華民國對外貿易發展協會陳昱凱副董事長",
+  "A1-2": "聖克里斯多福及尼維斯大使館 H.E. Ambassador Donya Lynex Francis",
+  "A1-3": "巴拉圭共和國大使館 Dra. Gisele Mousques de Filartiga",
+  "A1-4": "巴拉圭共和國大使館 H.E. Ambassador Darío Filártiga Ruiz Díaz",
+  "A1-5": "貝里斯大使館 H.E. Ambassador Katherine Meighan",
+  "A1-6": "經濟部國際貿易署胡啟娟副署長",
+  "B1-1": "總統府郭雅慧發言人",
+  "B1-2": "經濟部何晉滄政務次長",
+  "B1-3": "數位發展部林宜敬部長",
+  "B1-4": "中華民國對外貿易發展協會黃志芳董事長",
+  "B1-5": "中華民國賴清德總統",
+  "B1-6": "行政院卓榮泰院長",
+  "B1-7": "台北市電腦商業同業公會陳俊聖理事長",
+  "B1-8": "國家科學及技術委員會吳誠文主任委員",
+  "B1-9": "中華民國總統府沈榮津資政",
+  "C1-1": "行政院發言人李慧芝",
+  "C1-2": "數位發展部數位產業署林俊秀署長",
+  "C1-3": "台北市電腦公會理監事LINE台灣連線陳立人董事長兼執行長",
+  "C1-4": "台北市電腦公會理監事立寶電子許勝豪董事長",
+  "C1-5": "台北市電腦公會理監事技嘉科技藍紹文營運長",
+  "C1-6": "台北市電腦公會杜全昌總幹事",
+  "A2-1": "中華民國對外貿易發展協會周秀隆副秘書長",
+  "A2-2": "信驊科技 林鴻明 董事長",
+  "A2-3": "台灣區蔬果輸出業同業公會 蘇雲嶢 理事長",
+  "A2-4": "新光人壽 魏寶生 董事長",
+  "A2-5": "中華航空 高星潢 董事長",
+  "A2-6": "資策會 黃仲銘 董事長",
+  "B2-1": "台北市進出口商業同業公會黃教漳理事長",
+  "B2-2": "英國在台辦事處 Ms. Ruth Bradley-Jones Representative",
+  "B2-3": "波蘭臺北辦事處 Mr. Janusz Bilski Director",
+  "B2-4": "保留席8",
+  "B2-5": "保留席1",
+  "B2-6": "保留席2",
+  "B2-7": "印度－台北協會 Mr. Ninad Deshpande Director General",
+  "B2-8": "歐洲經貿辦事處Mr. Lutz Guellner Head of Office",
+  "B2-9": "中華民國對外貿易發展協會邱揮立副秘書長",
+  "C2-1": "瑞昱半導體股份有限公司郭協星副總經理",
+  "C2-2": "群聯電子股份有限公司竹南分公司潘建成創辦人暨執行長",
+  "C2-3": "義隆電子股份有限公司葉儀晧董事長兼總經理",
+  "C2-4": "美商英特爾亞太科技有限公司台灣分公司Hurley, Michael ASenior Vice President",
+  "C2-5": "祥碩科技股份有限公司林哲偉總經理",
+  "C2-6": "香港商輝達香港控股有限公司台灣分公司李文如副總裁",
+  "A3-1": "微軟台灣研發中心 張仁炯 總經理",
+  "A3-2": "台灣艾司摩爾科技汪佳慧副總裁暨台灣區總經理",
+  "A3-3": "嘉惠集團 喬培偉 總裁",
+  "A3-4": "璿豐汽車 丁文星 董事長",
+  "A3-5": "健策精密工業 趙宗信 董事長",
+  "A3-6": "神盾集團 羅森洲 董事長",
+  "B3-1": "索馬利蘭共和國駐台灣代表處 H.E. Ambassador Mahmoud Adam Jama Galaal",
+  "B3-2": "駐台北烏蘭巴托貿易經濟代表處 Mr. Tumurbaatar Gankhuyag Representative",
+  "B3-3": "匈牙利貿易辦事處 Ms. Tamara Vér Representative",
+  "B3-4": "馬來西亞友誼及貿易中心 Ms. Aznifah Ghani President/Representative",
+  "B3-5": "澳洲辦事處Mr. Robert Niel FergussonRepresentative",
+  "B3-6": "沙烏地阿拉伯商務辦事處 Mr. Mohammed Sadi A. Alghamdi Representative",
+  "B3-7": "義大利經濟貿易文化推廣辦事處 Mr. Marco Lombardi Representative",
+  "B3-8": "荷蘭在台辦事處Mr. Bastiaan Cornelis Maria PullesRepresentative",
+  "B3-9": "荷蘭外交部國際企業司司長Ms. Anne Le Guellec",
+  "C3-1": "聯發科技股份有限公司許皓鈞副總經理",
+  "C3-2": "台達電子工業股份有限公司林祺斌風扇暨熱傳導事業群副總經理",
+  "C3-3": "微星科技股份有限公司楊勝智協理",
+  "C3-4": "達擎股份有限公司吳宜芳董事長暨總經理",
+  "C3-5": "中美萬泰科技股份有限公司邱宏彥執行長",
+  "C3-6": "台達電子工業股份有限公司蔣安傑資通訊基礎設施事業群副總經理",
+  "A4-1": "台灣豐田通商股份有限公司脇康弘總經理",
+  "A4-2": "台湾双日股份有限公司安達祐司董事長兼總經理",
+  "A4-3": "台灣丸紅股份有限公司相馬伸一郎董事長兼總經理",
+  "A4-4": "台灣三菱商事股份有限公司三田地肇董事長兼總經理",
+  "A4-5": "台湾伊藤忠股份有限公司桐山寛史董事長",
+  "A4-6": "保留席3",
+  "B4-1": "駐台汶萊貿易旅遊代表處Ms. Sia Ai Ching Representative",
+  "B4-2": "巴西商務辦事處 Mr. Luís Cláudio Villafañe Gomes Santos Director",
+  "B4-3": "阿曼王國駐台北商務辦事處 Mr. Mohammed Al-Baraami Director",
+  "B4-4": "斯洛伐克經濟文化辦事處 Mrs. Lucia Langer Representative",
+  "B4-5": "新加坡駐台北商務辦事處 Ms. Teow Lee Foo Trade Representative",
+  "B4-6": "駐臺北韓國代表部 Mr. Koh Sang-Wook Acting Representative",
+  "B4-7": "智利商務辦事處 Mr. Fernando Schmidt Director",
+  "B4-8": "約旦商務辦事處 Ms. Ekram Alsukkar Director",
+  "B4-9": "保留席5",
+  "C4-1": "台北市電腦公會張笠資深副總幹事",
+  "C4-2": "台北市電腦公會張永美資深副總幹事",
+  "C4-3": "台北市電腦公會黃鋆鋇資深副總幹事",
+  "C4-4": "威剛科技股份有限公司李英豪永續長",
+  "C4-5": "台灣夏普股份有限公司蕭家昕行銷長",
+  "C4-6": "華碩電腦股份有限公司曹國維協理",
+  "A5-1": "双日株式会社木下友暉 Assistant Manager",
+  "A5-2": "台灣丸紅股份有限公司凃孝睿 戰略企劃部副部長",
+  "A5-3": "台湾伊藤忠股份有限公司長田佳史情報金融部課長",
+  "A5-4": "台灣住友商事股份有限公司陳瞻取部長",
+  "A5-5": "台灣丸紅股份有限公司大西裕明董事兼副總經理",
+  "A5-6": "健策精密工業 林錦隆 總經理",
+  "B5-1": "德國在台協會 Mr. Julian Goldmann, Head of Science and Technology",
+  "B5-2": "法國在台協會Mrs. Cléa Le Cardeur Acting Director",
+  "B5-3": "盧森堡台北辦事處 Mr. Lex Kaufhold Executive Director",
+  "B5-4": "駐台北印尼經濟貿易代表處 Mr. Eko Wijanarko Director of Investment",
+  "B5-5": "紐西蘭商工辦事處 Mr. Chris Langley Director",
+  "B5-6": "加拿大駐台北貿易辦事處 Mr. Jordan Turley Acting Director",
+  "B5-7": "EBRD Ms. Melis Ekmen Tabojer Managing Director, Policy Strategy and Delivery",
+  "B5-8": "EBRD Mr. Jacek Kubas Head of the Digital Hub",
+  "B5-9": "歐洲經貿辦事處 Mr. Christoph Saurenbach Head of Trade Section",
+  "C5-1": "中華民國電腦技能基金會許基文副秘書長",
+  "C5-2": "光寶科技股份有限公司張衣宜企業品牌價值發展中心負責人 暨 光寶文教基金會執行長",
+  "C5-3": "明基電通股份有限公司曾文興佳世達智能方案事業群總經理",
+  "C5-4": "創見資訊股份有限公司陳柏壽業務副總",
+  "C5-5": "香港商捷比達有限公司台灣分公司Joe Lin Vice President",
+  "C5-6": "定揚科技股份有限公司廖容綺總經理",
+  "A6-1": "KOTRA Mr. Han Suk Woo Director General",
+  "A6-2": "華麗得 王大 執行長",
+  "A6-3": "GIPA Mr. Han Dong Gyun President",
+  "A6-4": "國研院 徐玉學 博士營運長",
+  "A6-5": "Qualcomm洪悅容公共事務總監",
+  "A6-6": "瑞士銀行 吳綺珊 董事",
+  "B6-1": "中華航空股份有限公司陳漢銘總經理",
+  "B6-2": "臺灣證券交易所李愛玲總經理",
+  "B6-3": "巴拉圭共和國大使館李昌鼎大使特助",
+  "B6-4": "巴拉圭共和國大使館 Ms. Camila Filartiga",
+  "B6-5": "馬來西亞友誼及貿易中心 Ms. Izzati Aisyah Adnan Deputy Representative",
+  "B6-6": "墨西哥商務簽證文件暨文化辦事處 Mr. Francisco Martinez Acting Director",
+  "B6-7": "加拿大駐台北貿易辦事處 Ms. Sonia Lee Trade Commissioner-ICT",
+  "B6-8": "奈及利亞駐台北商務辦事處 Mr. Relicx T. Shiolban Acting Trade Commissioner",
+  "B6-9": "印度－台北協會 Mr. Naman Singla, Deputy Director General",
+  "C6-1": "BC評審團代表何寶中召集人",
+  "C6-2": "BC評審團代表林心恬委員",
+  "C6-3": "永續設計獎評審團代表劉舜仁評審長",
+  "C6-4": "永續設計獎評審團代表吳於軒委員",
+  "C6-5": "永續設計獎評審團代表王斌鶴委員",
+  "C6-6": "創夏設計有限公司莊錦佳品牌行銷",
+  "A7-1": "KOTRA Mr. Wonsuk Choi Deputy Director",
+  "A7-2": "科絡達 吳伯儀 執行長",
+  "A7-3": "DSET 張智程 執行長",
+  "A7-4": "長榮航空股份有限公司曾義唐協理",
+  "A7-5": "璿豐汽車 丁肇庭 董事",
+  "A7-6": "保留席",
+  "B7-1": "衛生福利部中央健康保險署 陳亮妤 署長",
+  "B7-2": "駐臺北韓國代表部李夏民研究員",
+  "B7-3": "駐臺北韓國代表部李正律科長",
+  "B7-4": "巴拉圭共和國大使館 Diego Alcaraz Assistant and Translator",
+  "B7-5": "巴西商務辦事處 Mr. Geraldo Barbosa Deputy Director",
+  "B7-6": "馬尼拉經濟文化辦事處 Mr. Terry Lin Investment Officer",
+  "B7-7": "奈及利亞駐台北商務辦事處 Mr. Eric Lin Marketing Specialist",
+  "B7-8": "阿曼王國駐台北商務辦事處 Ms. Joanna Kuo PR & Marketing Manager",
+  "B7-9": "保留3",
+  "C7-1": "Arizona Commerce Authority Sandra Watson President",
+  "C7-2": "Arizona Commerce Authority Fernando Garcia Executive Vice President",
+  "C7-3": "Arizona Commerce Authority Ryan Ruiz Executive Vice President",
+  "C7-4": "Arizona Chamber Danny Seiden President",
+  "C7-5": "Arizona Trade & Investment Office-Taiwan Steve Hsu Executive Director",
+  "C7-6": "台北市電腦公會楊櫻姿 副總幹事",
+  "A8-1": "財團法人伊甸社會福利基金會陳智宏處長",
+  "A8-2": "勞動部鄒子廉主任祕書",
+  "A8-3": "國立故宮博物院謝俊科數位資訊室主任",
+  "A8-4": "臺灣臺北地方檢察署黃惠玲檢察官",
+  "A8-5": "海洋委員會海巡署許啓業企劃組長",
+  "A8-6": "教育部陳素芬參事",
+  "B8-1": "衛生福利部中央健康保險署 游慧真 企劃組組長",
+  "B8-2": "斯洛伐克經濟文化辦事處 Mr. Valer Vanco Executive Assistant",
+  "B8-3": "約旦商務辦事處 Mr. Hope Lee Secretary",
+  "B8-4": "胡志明市電腦協會(HCA) Mr. Lam Nguyen Hai Long Chairman",
+  "B8-5": "FAIITA Mr. Devesh Rastogi - Chairman",
+  "B8-6": "FITAG Mr. Alok Ghelani Past President",
+  "B8-7": "FITAG Mr. Alpesh Gevariya President",
+  "B8-8": "香港電腦商會王志強主席",
+  "B8-9": "澳門電腦商會姚建池會長",
+  "C8-1": "數發部林明瑜簡任秘書",
+  "C8-2": "數發部張柏陽專案規畫師",
+  "C8-3": "國家科學及技術委員會賴怡臻秘書",
+  "C8-4": "王子儀秘書",
+  "C8-5": "數位發展部數位產業署趙曼筑專門委員",
+  "C8-6": "宏碁股份有限公司齊祖杰特助",
+  "A9-1": "VIP1",
+  "A9-2": "VIP5",
+  "A9-3": "微軟台灣研發中心 湯韻筑 商務營運經理",
+  "A9-4": "財團法人資訊工業策進會温敏卉董事長秘書",
+  "A9-5": "中華民國對外貿易發展協會李牮斯顧問",
+  "A9-6": "社團法人中華民國畫廊協會 陳菁螢 理事長",
+  "B9-1": "外媒1",
+  "B9-2": "外媒2",
+  "B9-3": "外媒3",
+  "B9-4": "經濟部國際貿易署簡顯瓔副組長",
+  "B9-5": "新加坡駐台北商務辦事處 Mr. Lau Teck Sien",
+  "B9-6": "歐洲經貿辦事處 Ms. Angela Hsiao Senior Policy Officer",
+  "B9-7": "聖克里斯多福及尼維斯大使館 Ms. Alice Huang Executive Assistant",
+  "B9-8": "GROUP.G1",
+  "B9-9": "GROUP.G2",
+  "C9-1": "經濟部產業發展署電資組張能凱組長",
+  "C9-2": "台北市電腦公會黃益豐副總幹事",
+  "C9-3": "台北市電腦公會吳文榮副總幹事",
+  "C9-4": "台北市電腦公會林淑華副總幹事",
+  "C9-5": "台北市電腦公會董偉豪總監",
+  "C9-6": "台北市電腦公會趙震震秘書",
+  "A10-1": "國際貿易署2",
+  "A10-2": "國際貿易署1",
+  "A10-3": "媒體1",
+  "A10-4": "媒體2",
+  "A10-5": "媒體3",
+  "A10-6": "媒體4",
+  "B10-1": "媒體5",
+  "B10-2": "媒體6",
+  "B10-3": "媒體7",
+  "B10-4": "媒體8",
+  "B10-5": "媒體9",
+  "B10-6": "媒體10",
+  "B10-7": "媒體11",
+  "B10-8": "媒體12",
+  "B10-9": "媒體13",
+  "C10-1": "VIP2",
+  "C10-2": "VIP3",
+  "C10-3": "VIP4",
+  "C10-4": "VIP7",
+  "C10-5": "華府台灣姐妹市協會 林麗莉會長",
+  "C10-6": "Hello Taiwan (Taiwan) 陳柏南執行長"
+};
+
+const ZS = [6,9,6];
+const ZK = ['A','B','C'];
+
+function buildMap(){
+  const wrap = document.getElementById('vmap');
+  wrap.innerHTML = '';
+  for(let r=0;r<10;r++){
+    const row = document.createElement('div');
+    row.className = 'vrow';
+    const lbl = document.createElement('div');
+    lbl.className = 'row-label';
+    lbl.textContent = r+1;
+    row.appendChild(lbl);
+    for(let z=0;z<3;z++){
+      if(z>0){const g=document.createElement('div');g.className='zone-gap';row.appendChild(g);}
+      const zd = document.createElement('div');
+      zd.className = 'zone-seats';
+      for(let s=1;s<=ZS[z];s++){
+        const code = ZK[z]+(r+1)+'-'+s;
+        const name = DATA[code]||'';
+        const el = document.createElement('div');
+        el.className = 'seat ' + (name ? 'seat-filled-'+ZK[z].toLowerCase() : 'seat-empty-'+ZK[z].toLowerCase());
+        el.id = 'seat-'+code;
+        el.textContent = name ? (name.trim()[0]||'?') : '';
+        el.title = code;
+        el.addEventListener('mouseenter', (e)=>showTip(e,code,name));
+        el.addEventListener('mouseleave', hideTip);
+        el.addEventListener('touchstart', (e)=>{e.preventDefault();showTip(e.touches[0],code,name);document.getElementById('search').value=name.split(' ')[0];doSearch();});
+        zd.appendChild(el);
+      }
+      row.appendChild(zd);
+    }
+    wrap.appendChild(row);
+  }
+}
+
+const tt = document.getElementById('tooltip');
+const ttSeat = document.getElementById('tt-seat');
+const ttName = document.getElementById('tt-name');
+function showTip(e,code,name){
+  if(!name){tt.style.display='none';return;}
+  ttSeat.textContent = code;
+  ttName.textContent = name;
+  tt.style.display='block';
+  moveTip(e);
+}
+function moveTip(e){
+  const x=e.clientX,y=e.clientY;
+  tt.style.left=(x+14)+'px';
+  tt.style.top=(y-36)+'px';
+}
+function hideTip(){tt.style.display='none';}
+document.addEventListener('mousemove',e=>{if(tt.style.display!=='none')moveTip(e);});
+
+let highlightTimeout;
+function doSearch(){
+  const kw = document.getElementById('search').value.trim().toLowerCase();
+  const wrap = document.getElementById('results-wrap');
+
+  // Clear seat highlights
+  document.querySelectorAll('.seat.highlight').forEach(el=>el.classList.remove('highlight'));
+  clearTimeout(highlightTimeout);
+
+  if(!kw){
+    wrap.innerHTML = '<div class="empty-state"><div class="empty-icon">🎟</div><div>輸入姓名或單位關鍵字<br>即可查詢座位號碼</div></div>';
+    return;
+  }
+
+  const results = Object.entries(DATA).filter(([code,name])=>name.toLowerCase().includes(kw));
+
+  if(!results.length){
+    wrap.innerHTML = '<div class="empty-state"><div class="empty-icon">🔍</div><div>找不到「' + kw + '」相關座位</div></div>';
+    return;
+  }
+
+  const countEl = document.createElement('div');
+  countEl.className = 'result-count';
+  countEl.textContent = '找到 ' + results.length + ' 筆結果';
+  wrap.innerHTML='';
+  wrap.appendChild(countEl);
+
+  results.forEach(([code,name])=>{
+    const zone = code[0].toLowerCase();
+    const card = document.createElement('div');
+    card.className = 'result-card zone-'+zone;
+
+    const badge = document.createElement('div');
+    badge.className = 'seat-badge';
+    badge.innerHTML = '<span class="seat-zone">'+code[0]+'</span><span class="seat-num">'+code.slice(1)+'</span>';
+
+    const info = document.createElement('div');
+    info.className = 'result-info';
+    const nameEl = document.createElement('div');
+    nameEl.className = 'result-name';
+    // Highlight keyword
+    const re = new RegExp('('+kw.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+')', 'gi');
+    nameEl.innerHTML = name.replace(re,'<mark>$1</mark>');
+    const seatEl = document.createElement('div');
+    seatEl.className = 'result-seat-label';
+    seatEl.textContent = '座位 ' + code;
+
+    info.appendChild(nameEl);
+    info.appendChild(seatEl);
+    card.appendChild(badge);
+    card.appendChild(info);
+
+    // Click to highlight on map
+    card.addEventListener('click',()=>{
+      document.querySelectorAll('.seat.highlight').forEach(el=>el.classList.remove('highlight'));
+      const seatEl2 = document.getElementById('seat-'+code);
+      if(seatEl2){
+        seatEl2.classList.add('highlight');
+        seatEl2.scrollIntoView({behavior:'smooth',block:'center'});
+      }
+    });
+
+    wrap.appendChild(card);
+
+    // Auto-highlight on map
+    const seatEl3 = document.getElementById('seat-'+code);
+    if(seatEl3) seatEl3.classList.add('highlight');
+  });
+}
+
+buildMap();
+</script>
+</body>
+</html>
