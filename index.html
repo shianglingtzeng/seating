@@ -65,8 +65,10 @@ body{font-family:"Noto Serif TC",serif;background:var(--bg);color:var(--text);mi
 .conn-dot.ok{background:var(--green);}.conn-dot.err{background:var(--red);}
 .search-hint{font-family:"DM Mono",monospace;font-size:10px;color:var(--muted);display:flex;align-items:center;gap:4px;}
 .staff-toggle{font-family:"DM Mono",monospace;font-size:10px;color:var(--muted);
-  background:none;border:1px solid var(--border);border-radius:6px;padding:4px 10px;cursor:pointer;}
+  background:none;border:1px solid var(--border);border-radius:6px;padding:4px 10px;cursor:pointer;transition:all .2s;}
 .staff-toggle.active{border-color:var(--green);color:var(--green);}
+.scan-btn{border-color:var(--accent);color:var(--accent);margin-right:auto;}
+.scan-btn.active{border-color:var(--red);color:var(--red);}
 
 .results-wrap{padding:12px 16px;}
 .result-count{font-family:"DM Mono",monospace;font-size:11px;color:var(--muted);margin-bottom:10px;}
@@ -114,7 +116,6 @@ body{font-family:"Noto Serif TC",serif;background:var(--bg);color:var(--text);mi
 /* ── RWD 席次圖：手機直排，桌機橫排 ── */
 .map-grid{display:flex;flex-direction:column;gap:12px;}
 
-/* 桌機：三區橫排 */
 @media(min-width:700px){
   .map-grid{flex-direction:row;align-items:flex-start;gap:8px;}
   .zone-block{flex:1;}
@@ -129,7 +130,6 @@ body{font-family:"Noto Serif TC",serif;background:var(--bg);color:var(--text);mi
 .zone-label.zh-c{color:var(--c);background:rgba(255,181,71,0.1);border:1px solid rgba(255,181,71,0.15);}
 
 .seat-grid{display:grid;gap:3px;}
-/* A區 6欄, B區 9欄, C區 6欄 — 自適應格寬 */
 .sg-a{grid-template-columns:repeat(6,1fr);}
 .sg-b{grid-template-columns:repeat(9,1fr);}
 .sg-c{grid-template-columns:repeat(6,1fr);}
@@ -166,6 +166,10 @@ body{font-family:"Noto Serif TC",serif;background:var(--bg);color:var(--text);mi
 .footer{text-align:center;padding:14px;font-family:"DM Mono",monospace;font-size:10px;
   color:var(--muted);border-top:1px solid var(--border);letter-spacing:.5px;}
 @keyframes fadeIn{from{opacity:0;transform:translateY(3px);}to{opacity:1;transform:none;}}
+
+/* 掃描器的客製化樣式 */
+#reader video {border-radius: 8px;}
+#reader {border: none !important;}
 </style>
 </head>
 <body>
@@ -204,16 +208,16 @@ body{font-family:"Noto Serif TC",serif;background:var(--bg);color:var(--text);mi
     <input type="text" id="search" placeholder="搜尋賓客姓名、公司或機構…" oninput="doSearch()" autocomplete="off" />
   </div>
   <div class="toolbar">
-    <button id="toggle-scan-btn" onclick="toggleScanner()" style="padding: 10px; font-size: 16px; cursor: pointer;">
-    📷 開啟手機相機掃描
-</button>
-<div id="reader" style="width: 300px; margin: 10px auto; display: none;"></div>
+    <button class="staff-toggle scan-btn" id="toggle-scan-btn" onclick="toggleScanner()">📷 開啟掃描</button>
+    
     <div class="search-hint">
       <span class="conn-dot" id="conn-dot"></span>
       <span id="conn-status">連線中…</span>
     </div>
     <button class="staff-toggle" id="staff-btn" onclick="toggleStaffMode()">🔐 工作人員</button>
   </div>
+  
+  <div id="reader" style="width: 100%; margin: 15px auto 5px; display: none; border-radius: 10px; overflow: hidden; border: 1px solid var(--border);"></div>
 </div>
 
 <div class="results-wrap" id="results-wrap">
@@ -263,10 +267,66 @@ const ZS=[6,9,6],ZK=["A","B","C"];
 const STAFF_PASSWORD="CPX2026";
 
 // ── State ──────────────────────────────────────────
-let DATA={};         // 從 Firebase assignments2026 即時載入
-let checkins={};     // 從 Firebase checkins2026 即時載入
+let DATA={};         
+let checkins={};     
 let staffMode=false;
 let assignLoaded=false, checkinsLoaded=false;
+
+// ── Scanner (html5-qrcode) ─────────────────────────
+let html5QrcodeScanner = null;
+window.toggleScanner = function() {
+  const readerDiv = document.getElementById('reader');
+  const btn = document.getElementById('toggle-scan-btn');
+
+  if (html5QrcodeScanner) {
+    html5QrcodeScanner.stop().then(() => {
+      html5QrcodeScanner = null;
+      readerDiv.style.display = 'none';
+      btn.innerHTML = "📷 開啟掃描";
+      btn.classList.remove("active");
+    }).catch(err => console.error(err));
+    return;
+  }
+
+  readerDiv.style.display = 'block';
+  btn.innerHTML = "🛑 關閉相機";
+  btn.classList.add("active");
+
+  html5QrcodeScanner = new Html5Qrcode("reader");
+  
+  html5QrcodeScanner.start(
+    { facingMode: "environment" }, // 強制使用後置鏡頭
+    {
+      fps: 10,
+      qrbox: { width: 250, height: 250 }
+    },
+    (decodedText) => {
+      // 掃描成功處理邏輯
+      console.log(`掃描成功: ${decodedText}`);
+      
+      const searchInput = document.getElementById('search');
+      if (searchInput) {
+        searchInput.value = decodedText; // 將姓名填入搜尋框
+        window.doSearch(); // 觸發你原本的搜尋與高亮邏輯
+      }
+
+      // 手機震動提示 (如果瀏覽器支援)
+      if (navigator.vibrate) navigator.vibrate(100);
+
+      // 掃描完成後自動關閉相機
+      window.toggleScanner(); 
+    },
+    (errorMessage) => {
+      // 忽略解析失敗的過程警告
+    }
+  ).catch((err) => {
+    alert("無法開啟相機，請確認已允許瀏覽器相機權限，且處於 HTTPS 連線環境下。");
+    console.error(err);
+    readerDiv.style.display = 'none';
+    btn.innerHTML = "📷 開啟掃描";
+    btn.classList.remove("active");
+  });
+};
 
 // ── Conn status ────────────────────────────────────
 function setConn(s){
@@ -277,11 +337,10 @@ function setConn(s){
   else{dot.className="conn-dot err";lbl.textContent="連線失敗";}
 }
 
-// ── Listen: assignments2026（座位資料，從 cpxopen 連動）──
+// ── Listen: assignments2026 ────────────────────────
 onValue(assignRef, snap=>{
   DATA={};
   const d=snap.val()||{};
-  // assignments2026 的格式是 { "A1-1": "姓名", ... }
   Object.entries(d).forEach(([code,name])=>{ DATA[code]=name; });
   assignLoaded=true;
   setConn("ok");
@@ -292,7 +351,7 @@ onValue(assignRef, snap=>{
     `<div class='empty-state'><div class='empty-icon'>⚠️</div><div>無法連線至 Firebase<br>請確認網路連線</div></div>`;
 });
 
-// ── Listen: checkins2026（報到狀態）─────────────────
+// ── Listen: checkins2026 ───────────────────────────
 onValue(checkinsRef, snap=>{
   checkins=snap.val()||{};
   checkinsLoaded=true;
@@ -304,7 +363,6 @@ function checkBothLoaded(){
   updateStats();
   buildMap();
   doSearch();
-  // Update footer timestamp
   const now=new Date();
   document.getElementById("footer-ts").textContent=
     "2026 COMPUTEX · 座位資料即時同步自 cpxopen · 最後更新 "+
@@ -408,7 +466,7 @@ window.doSearch=function(){
     badge.innerHTML=`<span class='seat-zone'>${code[0]}</span><span class='seat-num'>${code.slice(1)}</span>`;
 
     const info=document.createElement("div");info.className="result-info";
-        const kw_esc=kw.replace(/[.+?^${}()|[\]\\]/g,"\\$&");const re=new RegExp("("+kw_esc+")","gi");
+    const kw_esc=kw.replace(/[.+?^${}()|[\]\\]/g,"\\$&");const re=new RegExp("("+kw_esc+")","gi");
     const nameEl=document.createElement("div");nameEl.className="result-name";
     nameEl.innerHTML=name.replace(re,"<mark>$1</mark>");
     const seatLbl=document.createElement("div");seatLbl.className="result-seat-label";
@@ -447,7 +505,6 @@ function buildMap(){
       const grid=document.getElementById(grids[z]);
       grid.innerHTML="";
       for(let r=0;r<10;r++){
-        // Row label spanning all columns
         const rowLbl=document.createElement("div");
         rowLbl.className="row-label-cell";
         rowLbl.textContent="— "+( r+1)+" 排 —";
@@ -464,7 +521,6 @@ function buildMap(){
       }
     }
   }
-  // Update all seat states
   for(let r=0;r<10;r++) for(let z=0;z<3;z++) for(let s=1;s<=ZS[z];s++){
     const code=ZK[z]+(r+1)+"-"+s;
     const el=document.getElementById("seat-"+code);if(!el)continue;
