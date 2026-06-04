@@ -204,6 +204,10 @@ body{font-family:"Noto Serif TC",serif;background:var(--bg);color:var(--text);mi
     <input type="text" id="search" placeholder="搜尋賓客姓名、公司或機構…" oninput="doSearch()" autocomplete="off" />
   </div>
   <div class="toolbar">
+    <button id="toggle-scan-btn" onclick="toggleScanner()" style="padding: 10px; font-size: 16px; cursor: pointer;">
+    📷 開啟手機相機掃描
+</button>
+<div id="reader" style="width: 300px; margin: 10px auto; display: none;"></div>
     <div class="search-hint">
       <span class="conn-dot" id="conn-dot"></span>
       <span id="conn-status">連線中…</span>
